@@ -1,0 +1,5 @@
+AllowedEmails		= ["hikingfan@gmail.com"] # emails to allow to sign in
+GoogleClientID		= "todo" # see https://console.cloud.google.com/apis/credentials
+GoogleClientSecret	= "todo" # "
+CookieHashKey		= "todo" # to authenticate using HMAC (32 or 64 bytes), base64-encoded
+CookieBlockKey		= "todo" # AES-256 (32 bytes), base64-encoded
