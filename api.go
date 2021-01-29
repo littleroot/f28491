@@ -50,7 +50,7 @@ func (s *server) apiShowHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	name := r.FormValue("name")
-	gpgPassphrase := r.FormValue("gpg_passphrase")
+	gpgPassphrase := r.FormValue("gpg-passphrase")
 
 	if name == "" || gpgPassphrase == "" {
 		w.WriteHeader(http.StatusBadRequest)

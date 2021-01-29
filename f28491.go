@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -12,12 +11,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gorilla/securecookie"
 	"github.com/littleroot/go-pass"
 )
+
+// TODO: set up VM and copy gpg key and create SSH key pairs
 
 //go:embed templates
 var templatesFS embed.FS
@@ -36,6 +37,7 @@ const (
 var (
 	fHttp             = flag.String("http", ":52849", "http service address")
 	fPasswordStoreDir = flag.String("storedir", "password-store", "location of password-store directory")
+	fConf             = flag.String("c", "conf.toml", "path to conf file")
 )
 
 func main() {
@@ -57,79 +59,46 @@ type server struct {
 	mu sync.Mutex
 }
 
-func constructCookie(hash, block string) (*securecookie.SecureCookie, error) {
-	h, err := base64.StdEncoding.DecodeString(hash)
-	if err != nil {
-		return nil, err
-	}
-	b, err := base64.StdEncoding.DecodeString(block)
-	if err != nil {
-		return nil, err
-	}
-	cookie := securecookie.New(h, b)
-	cookie.SetSerializer(securecookie.JSONEncoder{})
-	return cookie, nil
-}
-
-func checkEnv() bool {
-	return os.Getenv("COOKIE_HASH_KEY") != "" &&
-		os.Getenv("COOKIE_BLOCK_KEY") != "" &&
-		os.Getenv("ALLOWED_EMAILS") != "" &&
-		os.Getenv("GOOGLE_CLIENT_ID") != "" &&
-		os.Getenv("GOOGLE_CLIENT_SECRET") != ""
-}
-
-func ensurePasswordStoreDir(ctx context.Context, path string) error {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		log.Printf("password store directory does not exist; running git clone")
-		return clonePasswordStoreDir(ctx, path)
-	}
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("%s exists and is not a directory", path)
-	}
-	log.Printf("password store directory exists; skipping git clone")
-	return nil
-}
-
-func clonePasswordStoreDir(ctx context.Context, path string) error {
-	output, err := exec.CommandContext(ctx, "git", "clone", passwordsGit, path).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("git clone passwords repository: %s: %s", err, output)
-	}
-	return nil
+type Conf struct {
+	AllowedEmails      []string
+	GoogleClientID     string
+	GoogleClientSecret string
+	CookieHashKey      string
+	CookieBlockKey     string
 }
 
 func run(ctx context.Context) error {
 	flag.Parse()
 
-	if !checkEnv() {
-		return errors.New("missing one or more required env vars")
+	f, err := os.Open(*fConf)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+
+	var c Conf
+	if _, err := toml.DecodeReader(f, &c); err != nil {
+		return fmt.Errorf("decode conf: %s", err)
 	}
 
 	if err := ensurePasswordStoreDir(ctx, *fPasswordStoreDir); err != nil {
 		return fmt.Errorf("password store dir: %s", err)
 	}
 
-	cookie, err := constructCookie(os.Getenv("COOKIE_HASH_KEY"), os.Getenv("COOKIE_BLOCK_KEY"))
+	cookie, err := constructCookie(c.CookieHashKey, c.CookieBlockKey)
 	if err != nil {
 		return fmt.Errorf("construct cookie: %s", err)
 	}
 
-	allowedEmails := strings.Split(os.Getenv("ALLOWED_EMAILS"), ",")
-
 	s := &server{
-		allowedEmails:      allowedEmails,
+		allowedEmails:      c.AllowedEmails,
 		cookie:             cookie,
-		googleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		googleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		googleClientID:     c.GoogleClientID,
+		googleClientSecret: c.GoogleClientSecret,
 		passwordStoreDir:   *fPasswordStoreDir,
 	}
 
 	// TODO: allowed emails only middleware
+
 	http.HandleFunc("/api/list", s.apiListHandler)
 	http.HandleFunc("/api/show", s.apiShowHandler)
 	// http.HandleFunc("/api/insert", insertHandler)
@@ -148,6 +117,44 @@ func run(ctx context.Context) error {
 
 	log.Printf("listening on %s", *fHttp)
 	return http.ListenAndServe(*fHttp, nil)
+}
+
+func constructCookie(hash, block string) (*securecookie.SecureCookie, error) {
+	h, err := base64.StdEncoding.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+	b, err := base64.StdEncoding.DecodeString(block)
+	if err != nil {
+		return nil, err
+	}
+	cookie := securecookie.New(h, b)
+	cookie.SetSerializer(securecookie.JSONEncoder{})
+	return cookie, nil
+}
+
+func ensurePasswordStoreDir(ctx context.Context, path string) error {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		log.Printf("password store directory does not exist; running git clone ...")
+		return clonePasswordStoreDir(ctx, path)
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s exists and is not a directory", path)
+	}
+	log.Printf("password store directory exists; skipping git clone")
+	return nil
+}
+
+func clonePasswordStoreDir(ctx context.Context, path string) error {
+	output, err := exec.CommandContext(ctx, "git", "clone", passwordsGit, path).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git clone passwords repository: %s: %s", err, output)
+	}
+	return nil
 }
 
 func (s *server) passOptions() *pass.Options {

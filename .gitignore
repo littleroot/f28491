@@ -1,5 +1,8 @@
-env.bash.dev
-env.bash.production
+conf.toml.dev
+conf.toml.production
 
 # binary
 f28491
+
+# local dev password store
+password-store
