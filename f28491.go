@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -30,15 +31,9 @@ var (
 	templates = template.Must(template.ParseFS(templatesFS, "templates/*.html"))
 )
 
-const (
-	passwordsGit = "git@github.com:nishanths/passwords.git"
-)
-
-var (
-	fHttp             = flag.String("http", ":52849", "http service address")
-	fPasswordStoreDir = flag.String("storedir", "password-store", "location of password-store directory")
-	fConf             = flag.String("c", "conf.toml", "path to conf file")
-)
+func printUsage() {
+	fmt.Fprintf(os.Stderr, "usage: f28491 <conf.toml>\n")
+}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -50,27 +45,36 @@ func main() {
 }
 
 type server struct {
-	allowedEmails      []string
 	cookie             *securecookie.SecureCookie
 	googleClientID     string
 	googleClientSecret string
 	passwordStoreDir   string
+	sshPrivateKeyFile  string
 
 	mu sync.Mutex
 }
 
 type Conf struct {
+	HttpServiceAddress string
+	PasswordStoreDir   string
 	AllowedEmails      []string
 	GoogleClientID     string
 	GoogleClientSecret string
 	CookieHashKey      string
 	CookieBlockKey     string
+	SSHPrivateKeyFile  string
+	PasswordsGit       string
 }
 
 func run(ctx context.Context) error {
 	flag.Parse()
 
-	f, err := os.Open(*fConf)
+	if flag.NArg() != 1 {
+		printUsage()
+		os.Exit(2)
+	}
+
+	f, err := os.Open(flag.Arg(0))
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
@@ -80,7 +84,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("decode conf: %s", err)
 	}
 
-	if err := ensurePasswordStoreDir(ctx, *fPasswordStoreDir); err != nil {
+	if err := ensurePasswordStoreDir(ctx, c.PasswordsGit, c.PasswordStoreDir); err != nil {
 		return fmt.Errorf("password store dir: %s", err)
 	}
 
@@ -89,23 +93,27 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("construct cookie: %s", err)
 	}
 
+	sshPriv, err := filepath.Abs(c.SSHPrivateKeyFile)
+	if err != nil {
+		return fmt.Errorf("construct absolute path to ssh private key file: %s", err)
+	}
+
+	allowedEmails := make(map[string]struct{})
+	for _, e := range c.AllowedEmails {
+		allowedEmails[e] = struct{}{}
+	}
+
 	s := &server{
-		allowedEmails:      c.AllowedEmails,
 		cookie:             cookie,
 		googleClientID:     c.GoogleClientID,
 		googleClientSecret: c.GoogleClientSecret,
-		passwordStoreDir:   *fPasswordStoreDir,
+		passwordStoreDir:   c.PasswordStoreDir,
+		sshPrivateKeyFile:  sshPriv,
 	}
 
-	// TODO: allowed emails only middleware
-
-	http.HandleFunc("/api/list", s.apiListHandler)
-	http.HandleFunc("/api/show", s.apiShowHandler)
-	// http.HandleFunc("/api/insert", insertHandler)
-	// http.HandleFunc("/api/git", gitHandler)
-	// http.HandleFunc("/api/mv", mvHandler)
-	// http.HandleFunc("/api/cp", cpHandler)
-	// http.HandleFunc("/api/rm", rmHandler)
+	http.Handle("/api/list", allowedEmailsOnly(http.HandlerFunc(s.apiListHandler), allowedEmails))
+	http.Handle("/api/show", allowedEmailsOnly(http.HandlerFunc(s.apiShowHandler), allowedEmails))
+	http.Handle("/api/git", allowedEmailsOnly(http.HandlerFunc(s.apiGitHandler), allowedEmails))
 
 	http.HandleFunc("/", s.indexHandler)
 
@@ -115,8 +123,8 @@ func run(ctx context.Context) error {
 
 	http.Handle("/static/", http.FileServer(http.FS(staticFS)))
 
-	log.Printf("listening on %s", *fHttp)
-	return http.ListenAndServe(*fHttp, nil)
+	log.Printf("listening on %s", c.HttpServiceAddress)
+	return http.ListenAndServe(c.HttpServiceAddress, nil)
 }
 
 func constructCookie(hash, block string) (*securecookie.SecureCookie, error) {
@@ -133,11 +141,11 @@ func constructCookie(hash, block string) (*securecookie.SecureCookie, error) {
 	return cookie, nil
 }
 
-func ensurePasswordStoreDir(ctx context.Context, path string) error {
+func ensurePasswordStoreDir(ctx context.Context, passwordsGit, path string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		log.Printf("password store directory does not exist; running git clone ...")
-		return clonePasswordStoreDir(ctx, path)
+		return clonePasswordStoreDir(ctx, passwordsGit, path)
 	}
 	if err != nil {
 		return err
@@ -149,7 +157,7 @@ func ensurePasswordStoreDir(ctx context.Context, path string) error {
 	return nil
 }
 
-func clonePasswordStoreDir(ctx context.Context, path string) error {
+func clonePasswordStoreDir(ctx context.Context, passwordsGit, path string) error {
 	output, err := exec.CommandContext(ctx, "git", "clone", passwordsGit, path).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git clone passwords repository: %s: %s", err, output)
@@ -161,4 +169,11 @@ func (s *server) passOptions() *pass.Options {
 	return &pass.Options{
 		StoreDir: s.passwordStoreDir,
 	}
+}
+
+func allowedEmailsOnly(h http.Handler, allowed map[string]struct{}) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO: validate cookie and check email
+		h.ServeHTTP(w, r)
+	})
 }

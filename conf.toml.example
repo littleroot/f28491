@@ -1,5 +1,19 @@
-AllowedEmails		= ["hikingfan@gmail.com"] # emails to allow to sign in
-GoogleClientID		= "todo" # see https://console.cloud.google.com/apis/credentials
-GoogleClientSecret	= "todo" # "
-CookieHashKey		= "todo" # to authenticate using HMAC (32 or 64 bytes), base64-encoded
-CookieBlockKey		= "todo" # AES-256 (32 bytes), base64-encoded
+HttpServiceAddress = ":52849"
+PasswordStoreDir = "password-store"
+
+# emails to allow to sign in and access passwords
+AllowedEmails = ["hikingfan@gmail.com"]
+
+# see https://console.cloud.google.com/apis/credentials
+GoogleClientID = "todo"
+GoogleClientSecret = "todo"
+
+# see https://github.com/gorilla/securecookie#examples
+CookieHashKey = "todo"
+CookieBlockKey = "todo"
+
+# path to SSH private key file
+SSHPrivateKeyFile = "todo"
+
+# Password Store Git location
+PasswordsGit = "example@example.com:foo/bar.git"
