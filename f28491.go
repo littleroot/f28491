@@ -131,11 +131,13 @@ func run(ctx context.Context) error {
 		baseURL:            c.BaseURL,
 	}
 
-	http.Handle("/api/list", s.allowedEmailsOnly(http.HandlerFunc(s.apiListHandler)))
-	http.Handle("/api/show", s.allowedEmailsOnly(http.HandlerFunc(s.apiShowHandler)))
-	http.Handle("/api/git", s.allowedEmailsOnly(http.HandlerFunc(s.apiGitHandler)))
+	http.Handle("/api/list", s.apiAuthMiddleware(http.HandlerFunc(s.apiListHandler)))
+	http.Handle("/api/show", s.apiAuthMiddleware(http.HandlerFunc(s.apiShowHandler)))
+	http.Handle("/api/git", s.apiAuthMiddleware(http.HandlerFunc(s.apiGitHandler)))
 
-	http.HandleFunc("/", s.indexHandler)
+	http.Handle("/", s.authMiddleware(http.HandlerFunc(s.indexHandler)))
+	http.Handle("/git-pull", s.authMiddleware(http.HandlerFunc(s.gitPullHandler)))
+	http.Handle("/p", s.authMiddleware(http.HandlerFunc(s.passwordHandler)))
 
 	http.Handle("/login", s.loginHandler())
 	http.Handle("/auth", s.authHandler())
@@ -177,7 +179,7 @@ func (s *server) passOptions() *pass.Options {
 	}
 }
 
-func (s *server) allowedEmailsOnly(h http.Handler) http.Handler {
+func (s *server) apiAuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		info, err := s.currentUser(r)
 		if isSecureCookieExpired(err) || err == ErrNoUser {
@@ -197,6 +199,36 @@ func (s *server) allowedEmailsOnly(h http.Handler) http.Handler {
 		_, ok := s.allowedEmails[info.Email]
 		if !ok {
 			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
+
+func (s *server) authMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		info, err := s.currentUser(r)
+		if isSecureCookieExpired(err) || err == ErrNoUser {
+			if err := templates.ExecuteTemplate(w, "login.html", nil); err != nil {
+				log.Printf("execute template login.html: %s", err)
+			}
+			return
+		}
+		if err != nil {
+			log.Printf("%s", err)
+			http.Error(w, "try again?", http.StatusInternalServerError)
+			return
+		}
+
+		if !info.EmailVerified {
+			http.Redirect(w, r, "/logout", http.StatusFound) // kinda hacky but it should do for now
+			return
+		}
+
+		_, ok := s.allowedEmails[info.Email]
+		if !ok {
+			http.Redirect(w, r, "/logout", http.StatusFound) // kinda hacky but it should do for now
 			return
 		}
 

@@ -7,9 +7,37 @@
 	<title>Passwords</title>
 </head>
 <body>
-	<h1>Passwords</h1>
-	<p><span>Logged in as {{.Email}}</span></p>
-	<p><a href="/logout">Log out</a></p>
-	{{ template "wasm_exec.html" "/static/webui.wasm" -}}
+	<main>
+		<h1>Passwords</h1>
+		<p>{{ .Email }}</p>
+		<p><a href="/logout">Log out</a></p>
+		<p>
+			{{ .Commit }} (<a href="/git-pull">git-pull</a>)
+		</p>
+		<p>
+			<input class="filter" type="text" placeholder="Filter" />
+		</p>
+		<p>
+			<ul>
+				{{- range .Items }}
+				<li class="item"><a href="/p?name={{ . }}">{{ . }}</a></li>
+				{{ end -}}
+			</ul>
+		</p>
+	</main>
+	<script type="text/javascript">
+		const input = document.querySelector(".filter");
+
+		input.addEventListener("keyup", () => {
+			const term = input.value.trim().toLowerCase();
+			const items = document.querySelectorAll(".item");
+
+			for (const item of items) {
+				const t = item.textContent.toLowerCase();
+				const show = t.includes(term) || term == "";
+				item.classList.toggle("hidden", !show);
+			}
+		});
+	</script>
 </body>
 </html>
