@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -114,13 +115,18 @@ func run(ctx context.Context) error {
 		allowedEmails[e] = struct{}{}
 	}
 
+	sshPriv, err := filepath.Abs(c.SSHPrivateKeyFile)
+	if err != nil {
+		return fmt.Errorf("construct abs path: %s", err)
+	}
+
 	s := &server{
 		allowedEmails:      allowedEmails,
 		cookie:             cookie,
 		googleClientID:     c.GoogleClientID,
 		googleClientSecret: c.GoogleClientSecret,
 		passwordStoreDir:   c.PasswordStoreDir,
-		sshPrivateKeyFile:  c.SSHPrivateKeyFile,
+		sshPrivateKeyFile:  sshPriv,
 		env:                c.Env,
 		baseURL:            c.BaseURL,
 	}
