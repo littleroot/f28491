@@ -32,3 +32,14 @@ ul {
 .hidden {
 	display: none !important;
 }
+
+code {
+	font-family: "Inconsolata", monospace;
+}
+
+pre.name, pre.content {
+	overflow-x: auto;
+	background: #eee;
+	padding: 1em;
+	max-width: 400px;
+}

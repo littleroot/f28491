@@ -59,8 +59,24 @@ type PasswordTemplateData struct {
 }
 
 func (s *server) passwordHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	name := r.FormValue("name")
+	if name == "" {
+		http.Error(w, "missing name", http.StatusBadRequest)
+		return
+	}
+
+	info, err := s.currentUser(r)
+	if err != nil {
+		// code bug: error should be nil due to middleware
+		panic(err)
+	}
+
+	if err := templates.ExecuteTemplate(w, "password.html", PasswordTemplateData{
+		Email: info.Email,
+		Name:  name,
+	}); err != nil {
+		log.Printf("execute template password.html: %s", err)
+	}
 }
 
 func (s *server) gitPullHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +93,7 @@ func (s *server) gitPullHandler(w http.ResponseWriter, r *http.Request) {
 	output, err := execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"pull"})
 	if err != nil {
 		log.Printf("exec git: %s: %s", err, output)
-		http.Error(w, "failed git pull; try again", http.StatusInternalServerError)
+		http.Error(w, "failed git pull. try again.", http.StatusInternalServerError)
 		return
 	}
 
