@@ -1,6 +1,6 @@
 # f28491
 
-A server and a web user interface for pass.
+A server and a web user interface for [pass][1].
 
 ## What does the name `f28491` mean?
 
@@ -9,7 +9,7 @@ It stands for `528491`, which is the password to the safe in [Inception][2].
 ## Requirements
 
 - git
-- [pass][1]
+- pass
 - ssh
 - gpg
 
