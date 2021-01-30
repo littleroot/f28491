@@ -12,3 +12,7 @@ serve:
 .PHONY: vet
 vet:
 	go1.16rc1 vet ./...
+
+.PHONY: scp
+scp: build
+	scp f28491 conf.toml.production tortoise:~/run/f28491/
