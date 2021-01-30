@@ -10,5 +10,6 @@
 	<h1>Passwords</h1>
 	<p><span>Logged in as {{.Email}}</span></p>
 	<p><a href="/logout">Log out</a></p>
+	{{ template "wasm_exec.html" "/static/webui.wasm" -}}
 </body>
 </html>

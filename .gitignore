@@ -3,6 +3,8 @@ conf.toml.production
 
 # binary
 f28491
+static/webui.wasm
 
 # local dev password store
 password-store
+
