@@ -217,7 +217,7 @@ func (s *server) authMiddleware(h http.Handler) http.Handler {
 		}
 		if err != nil {
 			log.Printf("%s", err)
-			http.Error(w, "try again?", http.StatusInternalServerError)
+			http.Error(w, "try again", http.StatusInternalServerError)
 			return
 		}
 
