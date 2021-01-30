@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -18,8 +19,6 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/littleroot/go-pass"
 )
-
-// TODO: set up VM and copy gpg key and create SSH key pairs
 
 //go:embed templates
 var templatesFS embed.FS
@@ -45,17 +44,29 @@ func main() {
 }
 
 type server struct {
+	allowedEmails      map[string]struct{}
 	cookie             *securecookie.SecureCookie
 	googleClientID     string
 	googleClientSecret string
 	passwordStoreDir   string
 	sshPrivateKeyFile  string
+	env                Environment
+	baseURL            string
 
 	mu sync.Mutex
 }
 
+type Environment string
+
+const (
+	Dev        Environment = "dev"
+	Production Environment = "Production"
+)
+
 type Conf struct {
-	HttpServiceAddress string
+	Env                Environment
+	BaseURL            string
+	HTTPServiceAddress string
 	PasswordStoreDir   string
 	AllowedEmails      []string
 	GoogleClientID     string
@@ -84,6 +95,12 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("decode conf: %s", err)
 	}
 
+	switch c.Env {
+	case Dev, Production:
+	default:
+		return fmt.Errorf("invalid Env %s", c.Env)
+	}
+
 	if err := ensurePasswordStoreDir(ctx, c.PasswordsGit, c.PasswordStoreDir); err != nil {
 		return fmt.Errorf("password store dir: %s", err)
 	}
@@ -104,41 +121,30 @@ func run(ctx context.Context) error {
 	}
 
 	s := &server{
+		allowedEmails:      allowedEmails,
 		cookie:             cookie,
 		googleClientID:     c.GoogleClientID,
 		googleClientSecret: c.GoogleClientSecret,
 		passwordStoreDir:   c.PasswordStoreDir,
 		sshPrivateKeyFile:  sshPriv,
+		env:                c.Env,
+		baseURL:            c.BaseURL,
 	}
 
-	http.Handle("/api/list", allowedEmailsOnly(http.HandlerFunc(s.apiListHandler), allowedEmails))
-	http.Handle("/api/show", allowedEmailsOnly(http.HandlerFunc(s.apiShowHandler), allowedEmails))
-	http.Handle("/api/git", allowedEmailsOnly(http.HandlerFunc(s.apiGitHandler), allowedEmails))
+	http.Handle("/api/list", s.allowedEmailsOnly(http.HandlerFunc(s.apiListHandler)))
+	http.Handle("/api/show", s.allowedEmailsOnly(http.HandlerFunc(s.apiShowHandler)))
+	http.Handle("/api/git", s.allowedEmailsOnly(http.HandlerFunc(s.apiGitHandler)))
 
 	http.HandleFunc("/", s.indexHandler)
 
-	// http.HandleFunc("/login", loginHandler)
-	// http.HandleFunc("/auth/google", authGoogleHandler)
-	// http.HandleFunc("/logout", logoutHandler)
+	http.Handle("/login", s.loginHandler())
+	http.Handle("/auth", s.authHandler())
+	http.HandleFunc("/logout", s.logoutHandler)
 
 	http.Handle("/static/", http.FileServer(http.FS(staticFS)))
 
-	log.Printf("listening on %s", c.HttpServiceAddress)
-	return http.ListenAndServe(c.HttpServiceAddress, nil)
-}
-
-func constructCookie(hash, block string) (*securecookie.SecureCookie, error) {
-	h, err := base64.StdEncoding.DecodeString(hash)
-	if err != nil {
-		return nil, err
-	}
-	b, err := base64.StdEncoding.DecodeString(block)
-	if err != nil {
-		return nil, err
-	}
-	cookie := securecookie.New(h, b)
-	cookie.SetSerializer(securecookie.JSONEncoder{})
-	return cookie, nil
+	log.Printf("listening on %s", c.HTTPServiceAddress)
+	return http.ListenAndServe(c.HTTPServiceAddress, nil)
 }
 
 func ensurePasswordStoreDir(ctx context.Context, passwordsGit, path string) error {
@@ -171,9 +177,34 @@ func (s *server) passOptions() *pass.Options {
 	}
 }
 
-func allowedEmailsOnly(h http.Handler, allowed map[string]struct{}) http.Handler {
+func (s *server) allowedEmailsOnly(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: validate cookie and check email
+		info, err := s.currentUser(r)
+		if isSecureCookieExpired(err) || err == ErrNoUser {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !info.EmailVerified {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		_, ok := s.allowedEmails[info.Email]
+		if !ok {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
 		h.ServeHTTP(w, r)
 	})
+}
+
+func drainAndClose(r io.ReadCloser) {
+	io.Copy(ioutil.Discard, r)
+	r.Close()
 }

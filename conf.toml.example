@@ -1,4 +1,12 @@
-HttpServiceAddress = ":52849"
+# Running environment: "dev" | "production"
+Env = "production"
+
+BaseURL = "http://localhost:52849" # or "https://sub.mydomain.com"
+
+# HTTP service address to listen on
+HTTPServiceAddress = ":52849"
+
+# Location of pass's password store directory
 PasswordStoreDir = "password-store"
 
 # emails to allow to sign in and access passwords

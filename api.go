@@ -28,6 +28,7 @@ func (s *server) apiGitHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	drainAndClose(r.Body)
 
 	if !isAllowedGitCommand(req.Args) {
 		w.WriteHeader(http.StatusBadRequest)
