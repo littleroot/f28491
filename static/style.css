@@ -25,7 +25,7 @@ ul {
 	overflow-x: auto;
 	padding-left: 0;
 	padding-right: 0;
-	list-style: none;
+	list-style-type: none;
 	line-height: 1.5;
 }
 

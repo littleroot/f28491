@@ -124,6 +124,11 @@ func (s *server) apiShowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := reloadGpgAgent(); err != nil {
+		// only log
+		log.Printf("reload gpg-agent: %s", err)
+	}
+
 	err = json.NewEncoder(w).Encode(api.ShowResponse(content))
 	if err != nil {
 		log.Printf("write json: %s", err)
