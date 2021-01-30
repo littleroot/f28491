@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -60,7 +59,7 @@ type Environment string
 
 const (
 	Dev        Environment = "dev"
-	Production Environment = "Production"
+	Production Environment = "production"
 )
 
 type Conf struct {
@@ -101,18 +100,13 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("invalid Env %s", c.Env)
 	}
 
-	if err := ensurePasswordStoreDir(ctx, c.PasswordsGit, c.PasswordStoreDir); err != nil {
+	if err := ensurePasswordStoreDir(ctx, c.SSHPrivateKeyFile, c.PasswordsGit, c.PasswordStoreDir); err != nil {
 		return fmt.Errorf("password store dir: %s", err)
 	}
 
 	cookie, err := constructCookie(c.CookieHashKey, c.CookieBlockKey)
 	if err != nil {
 		return fmt.Errorf("construct cookie: %s", err)
-	}
-
-	sshPriv, err := filepath.Abs(c.SSHPrivateKeyFile)
-	if err != nil {
-		return fmt.Errorf("construct absolute path to ssh private key file: %s", err)
 	}
 
 	allowedEmails := make(map[string]struct{})
@@ -126,7 +120,7 @@ func run(ctx context.Context) error {
 		googleClientID:     c.GoogleClientID,
 		googleClientSecret: c.GoogleClientSecret,
 		passwordStoreDir:   c.PasswordStoreDir,
-		sshPrivateKeyFile:  sshPriv,
+		sshPrivateKeyFile:  c.SSHPrivateKeyFile,
 		env:                c.Env,
 		baseURL:            c.BaseURL,
 	}
@@ -149,11 +143,11 @@ func run(ctx context.Context) error {
 	return http.ListenAndServe(c.HTTPServiceAddress, nil)
 }
 
-func ensurePasswordStoreDir(ctx context.Context, passwordsGit, path string) error {
+func ensurePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, passwordsGit, path string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		log.Printf("password store directory does not exist; running git clone ...")
-		return clonePasswordStoreDir(ctx, passwordsGit, path)
+		return clonePasswordStoreDir(ctx, sshPrivateKeyFile, passwordsGit, path)
 	}
 	if err != nil {
 		return err
@@ -165,8 +159,12 @@ func ensurePasswordStoreDir(ctx context.Context, passwordsGit, path string) erro
 	return nil
 }
 
-func clonePasswordStoreDir(ctx context.Context, passwordsGit, path string) error {
-	output, err := exec.CommandContext(ctx, "git", "clone", passwordsGit, path).CombinedOutput()
+func clonePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, passwordsGit, path string) error {
+	cmd := exec.CommandContext(ctx, "git", "clone", passwordsGit, path)
+	cmd.Env = []string{
+		fmt.Sprintf(`GIT_SSH_COMMAND=ssh -i %s -o IdentitiesOnly=yes`, sshPrivateKeyFile),
+	}
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git clone passwords repository: %s: %s", err, output)
 	}
