@@ -9,10 +9,10 @@
 <body>
 	<main>
 		<h1>Passwords</h1>
-		<p>{{ .Email }}</p>
-		<p><a href="/logout">Log out</a></p>
+		<p class="email">{{ .Email }}</p>
+		<p><a class="underline" href="/logout">Log out</a></p>
 		<p>
-			<code>{{ .Commit }}</code> (<a href="/git-pull">git-pull</a>)
+			<code>{{ .Commit }}</code> (<a class="underline" href="/git-pull">git-pull</a>)
 		</p>
 		<p>
 			<input class="filter" type="text" placeholder="Filter" />

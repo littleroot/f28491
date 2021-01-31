@@ -1,15 +1,21 @@
 :root {
-	--blue: #0640e0; /* sr.ht */
+	--fg: #333;
 }
 
 body {
-	font-family: "times new roman", serif;
+	font-family: "cantarell", "roboto", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 	margin: 0 auto;
 	padding: 10px;
+	font-weight: 500;
 }
 
-a, a:visited {
-	color: var(--blue);
+a {
+	color: var(--fg);
+	text-decoration: none;
+}
+
+.underline {
+	text-decoration: underline;
 }
 
 main {
@@ -38,6 +44,7 @@ code {
 }
 
 pre.name, pre.content {
+	font-family: "Inconsolata", monospace;
 	overflow-x: auto;
 	background: #eee;
 	padding: 1em;
