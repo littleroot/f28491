@@ -1,12 +1,11 @@
 :root {
-	--fg: #333;
+	--fg: #000;
 }
 
 body {
-	font-family: "roboto", "cantarell", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+	font-family: "times new roman", serif;
 	margin: 0 auto;
 	padding: 10px;
-	font-weight: 500;
 }
 
 a {
