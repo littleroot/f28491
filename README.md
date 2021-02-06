@@ -6,6 +6,14 @@ A server and a web user interface for [pass][1].
 
 It stands for `528491`, which is the password to the safe in [Inception][2].
 
+## Usage
+
+```
+usage: f28491 <conf.toml>
+```
+
+See conf.toml.example.
+
 ## Requirements
 
 - git

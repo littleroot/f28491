@@ -1,12 +1,17 @@
 # Running environment: "dev" | "production"
+# In dev, cookies use Secure=false
 Env = "production"
 
-BaseURL = "http://localhost:52849" # or "https://sub.mydomain.com"
+# Base URL of server
+# e.g., "http://localhost:52849", "https://sub.mydomain.com"
+BaseURL = "http://localhost:52849"
 
 # HTTP service address to listen on
 HTTPServiceAddress = ":52849"
 
-# Location of pass's password store directory
+# Location of pass's password store directory.
+# The repository specified by PasswordsGit will be cloned to the directory
+# if it does not exist.
 PasswordStoreDir = "password-store"
 
 # emails to allow to sign in and access passwords
