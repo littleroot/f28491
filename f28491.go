@@ -136,7 +136,7 @@ func run(ctx context.Context) error {
 	http.Handle("/api/git", s.apiAuthMiddleware(http.HandlerFunc(s.apiGitHandler)))
 
 	http.Handle("/", s.authMiddleware(http.HandlerFunc(s.indexHandler)))
-	http.Handle("/git-pull", s.authMiddleware(http.HandlerFunc(s.gitPullHandler)))
+	http.Handle("/update", s.authMiddleware(http.HandlerFunc(s.updateHandler)))
 	http.Handle("/p", s.authMiddleware(http.HandlerFunc(s.passwordHandler)))
 
 	http.Handle("/login", s.loginHandler())

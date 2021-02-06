@@ -79,7 +79,7 @@ func (s *server) passwordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) gitPullHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -90,10 +90,17 @@ func (s *server) gitPullHandler(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	output, err := execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"pull"})
+	output, err := execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"fetch", "origin", "main"})
 	if err != nil {
 		log.Printf("exec git: %s: %s", err, output)
-		http.Error(w, "failed git pull. try again.", http.StatusInternalServerError)
+		http.Error(w, "failed git fetch. try again.", http.StatusInternalServerError)
+		return
+	}
+
+	output, err = execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"reset", "--hard", "origin/main"})
+	if err != nil {
+		log.Printf("exec git: %s: %s", err, output)
+		http.Error(w, "failed git reset. try again.", http.StatusInternalServerError)
 		return
 	}
 
