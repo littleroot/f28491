@@ -1,20 +1,16 @@
-# f28491
+# passweb
 
-A server and a web user interface for [pass][1].
-
-## What does the name `f28491` mean?
-
-It stands for `528491`, which is the password to the safe in [Inception][2].
+A server and a web user interface for [pass][1]. Requires Go version 1.16 or higher.
 
 ## Usage
 
 ```
-usage: f28491 <conf.toml>
+usage: passweb <conf.toml>
 ```
 
-See conf.toml.example.
+See `conf.toml.example` for an example config.
 
-## Requirements
+## Runtime requirements
 
 - git
 - pass
@@ -25,4 +21,3 @@ GPG keys should be in the default GPG homedir `~/.gnupg`. SSH keys for git
 operations should be in the location specified in the `conf.toml`.
 
 [1]: http://passworstore.org
-[2]: https://inception.fandom.com/wiki/528491_(number)

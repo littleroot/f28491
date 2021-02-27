@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	CookieNameUserInfo = "f28491_userinfo"
-	CookieNameState    = "f28491_state"
+	CookieNameUserInfo = "passweb_userinfo"
+	CookieNameState    = "passweb_state"
 
 	CookieAge = 15 * 24 * time.Hour
 )

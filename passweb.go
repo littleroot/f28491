@@ -31,7 +31,7 @@ var (
 )
 
 func printUsage() {
-	fmt.Fprintf(os.Stderr, "usage: f28491 <conf.toml>\n")
+	fmt.Fprintf(os.Stderr, "usage: passweb <conf.toml>\n")
 }
 
 func main() {

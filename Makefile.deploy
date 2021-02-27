@@ -1,0 +1,3 @@
+.PHONY: scp
+scp: build
+	scp passweb conf.toml.production tortoise:~/run/passweb/

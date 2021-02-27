@@ -1,4 +1,4 @@
-module github.com/littleroot/f28491
+module github.com/littleroot/passweb
 
 go 1.16
 

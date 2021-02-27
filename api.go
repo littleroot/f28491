@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/littleroot/f28491/api"
 	"github.com/littleroot/go-pass"
+	"github.com/littleroot/passweb/api"
 )
 
 func (s *server) apiGitHandler(w http.ResponseWriter, r *http.Request) {
