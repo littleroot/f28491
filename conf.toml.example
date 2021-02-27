@@ -3,30 +3,32 @@
 Env = "production"
 
 # Base URL of server
-# e.g., "http://localhost:52849", "https://sub.mydomain.com"
+# e.g. "http://localhost:52849", "https://sub.mydomain.com"
 BaseURL = "http://localhost:52849"
 
 # HTTP service address to listen on
 HTTPServiceAddress = ":52849"
 
-# Location of pass's password store directory.
-# The repository specified by PasswordsGit will be cloned to the directory
+# Local path to the pass password-store directory.
+# The repository specified by PasswordsGit will be cloned to the specified path
 # if it does not exist.
-PasswordStoreDir = "password-store"
+PasswordStoreDir = "path/to/password-store"
 
-# emails to allow to sign in and access passwords
+# Google account emails to allow to sign in and access passwords
 AllowedEmails = ["hikingfan@gmail.com"]
 
+# used for Google Sign In
 # see https://console.cloud.google.com/apis/credentials
-GoogleClientID = "todo"
-GoogleClientSecret = "todo"
+GoogleClientID = ""
+GoogleClientSecret = ""
 
 # see https://github.com/gorilla/securecookie#examples
-CookieHashKey = "todo"
-CookieBlockKey = "todo"
+CookieHashKey = ""
+CookieBlockKey = ""
 
 # path to SSH private key file
-SSHPrivateKeyFile = "todo"
+# used to clone the pass git repository
+SSHPrivateKeyFile = "path/to/ssh/id_ed25519"
 
-# Password Store Git location
+# pass git repository remote
 PasswordsGit = "example@example.com:foo/bar.git"
