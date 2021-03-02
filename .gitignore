@@ -1,11 +1,10 @@
-conf.toml.dev
-conf.toml.production
-
 # binary
-f28491
+passweb
 static/webui.wasm
 static/views.css
 
 # local dev password store
 password-store
 
+tags
+*.swp
