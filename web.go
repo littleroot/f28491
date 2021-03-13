@@ -58,6 +58,7 @@ type PasswordTemplateData struct {
 	Name  string
 }
 
+// Serves an individual item's password page.
 func (s *server) passwordHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	if name == "" {
@@ -79,6 +80,10 @@ func (s *server) passwordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Update the pass Git repository to the latest changes, using a git fetch
+// followed by a git reset --hard. Note that we prefer this strategy over a
+// merge/rebase in order to handle the case in which someone may have force
+// pushed changes that are not possible to integrate with a merge/rebase.
 func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -90,14 +95,14 @@ func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	output, err := execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"fetch", "origin", "main"})
+	output, err := execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"fetch"})
 	if err != nil {
 		log.Printf("exec git: %s: %s", err, output)
 		http.Error(w, "failed git fetch. try again.", http.StatusInternalServerError)
 		return
 	}
 
-	output, err = execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"reset", "--hard", "origin/main"})
+	output, err = execGit(ctx, s.sshPrivateKeyFile, s.passwordStoreDir, []string{"reset", "--hard", "origin/" + s.branch})
 	if err != nil {
 		log.Printf("exec git: %s: %s", err, output)
 		http.Error(w, "failed git reset. try again.", http.StatusInternalServerError)

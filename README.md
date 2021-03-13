@@ -19,18 +19,18 @@ config file.  See `conf.toml.example` for an example config file. All fields
 in the config file are required.
 
 ```
-passweb <conf.toml>
+passweb conf.toml
 ```
 
-The GPG keys used by `pass` must be located in the default GPG homedir: `~/.gnupg`.
-The SSH keys for Git operations (such as cloning ) should be in the location specified by
-`SSHPrivateKeyFile` in the config file.
+The GPG keys used by `pass` must be located in the default GPG homedir:
+`~/.gnupg`.  The SSH keys for Git operations (such as cloning) should be in
+the location specified by `SSHPrivateKeyFile` in the config file.
 
 Only Google accounts specified in `AllowedEmails` in the config file may
 access the interface. (The GPG passphrase used by `pass` is always required in
-addition to this requirement.)
+addition to this requirement to view each password.)
 
-## Runtime requirements
+## Runtime Requirements
 
 ```
 - pass
@@ -38,5 +38,9 @@ addition to this requirement.)
 - ssh
 - gpg
 ```
+
+## License
+
+MIT
 
 [1]: http://passworstore.org

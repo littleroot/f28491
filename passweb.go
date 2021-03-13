@@ -52,8 +52,10 @@ type server struct {
 	sshPrivateKeyFile  string
 	env                Environment
 	baseURL            string
+	branch             string
 
-	mu sync.Mutex
+	mu sync.Mutex // for all command-line operations (git, pass, etc.)
+
 }
 
 type Environment string
@@ -64,17 +66,18 @@ const (
 )
 
 type Conf struct {
-	Env                Environment
-	BaseURL            string
-	HTTPServiceAddress string
-	PasswordStoreDir   string
-	AllowedEmails      []string
-	GoogleClientID     string
-	GoogleClientSecret string
-	CookieHashKey      string
-	CookieBlockKey     string
-	SSHPrivateKeyFile  string
-	PasswordsGit       string
+	Env                   Environment
+	BaseURL               string
+	HTTPServiceAddress    string
+	AllowedGoogleAccounts []string
+	GitRepository         string
+	GitBranch             string
+	PasswordStoreDir      string
+	SSHPrivateKeyFile     string
+	GoogleClientID        string
+	GoogleClientSecret    string
+	CookieHashKey         string
+	CookieBlockKey        string
 }
 
 func run(ctx context.Context) error {
@@ -101,7 +104,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("invalid Env %s", c.Env)
 	}
 
-	if err := ensurePasswordStoreDir(ctx, c.SSHPrivateKeyFile, c.PasswordsGit, c.PasswordStoreDir); err != nil {
+	if err := ensurePasswordStoreDir(ctx, c.SSHPrivateKeyFile, c.GitRepository, c.PasswordStoreDir, c.GitBranch); err != nil {
 		return fmt.Errorf("password store dir: %s", err)
 	}
 
@@ -111,7 +114,7 @@ func run(ctx context.Context) error {
 	}
 
 	allowedEmails := make(map[string]struct{})
-	for _, e := range c.AllowedEmails {
+	for _, e := range c.AllowedGoogleAccounts {
 		allowedEmails[e] = struct{}{}
 	}
 
@@ -129,11 +132,10 @@ func run(ctx context.Context) error {
 		sshPrivateKeyFile:  sshPriv,
 		env:                c.Env,
 		baseURL:            c.BaseURL,
+		branch:             c.GitBranch,
 	}
 
-	http.Handle("/api/list", s.apiAuthMiddleware(http.HandlerFunc(s.apiListHandler)))
 	http.Handle("/api/show", s.apiAuthMiddleware(http.HandlerFunc(s.apiShowHandler)))
-	http.Handle("/api/git", s.apiAuthMiddleware(http.HandlerFunc(s.apiGitHandler)))
 
 	http.Handle("/", s.authMiddleware(http.HandlerFunc(s.indexHandler)))
 	http.Handle("/update", s.authMiddleware(http.HandlerFunc(s.updateHandler)))
@@ -149,11 +151,11 @@ func run(ctx context.Context) error {
 	return http.ListenAndServe(c.HTTPServiceAddress, nil)
 }
 
-func ensurePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, passwordsGit, path string) error {
+func ensurePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, gitRepository, path, branch string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		log.Printf("password store directory does not exist; running git clone ...")
-		return clonePasswordStoreDir(ctx, sshPrivateKeyFile, passwordsGit, path)
+		return clonePasswordStoreDir(ctx, sshPrivateKeyFile, gitRepository, path, branch)
 	}
 	if err != nil {
 		return err
@@ -165,14 +167,20 @@ func ensurePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, passwordsGit
 	return nil
 }
 
-func clonePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, passwordsGit, path string) error {
-	cmd := exec.CommandContext(ctx, "git", "clone", passwordsGit, path)
+// clone the pass Git repository and checkout the right branch.
+func clonePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, gitRepository, path, branch string) error {
+	cmd := exec.CommandContext(ctx, "git", "clone", gitRepository, path)
 	cmd.Env = []string{
 		fmt.Sprintf(`GIT_SSH_COMMAND=ssh -i %s -o IdentitiesOnly=yes`, sshPrivateKeyFile),
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("git clone passwords repository: %s: %s", err, output)
+	}
+
+	output, err = execGit(ctx, sshPrivateKeyFile, path, []string{"checkout", branch})
+	if err != nil {
+		return fmt.Errorf("git checkout: %s: %s", err, output)
 	}
 	return nil
 }
@@ -186,7 +194,7 @@ func (s *server) passOptions() *pass.Options {
 func (s *server) apiAuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		info, err := s.currentUser(r)
-		if isSecureCookieExpired(err) || err == ErrNoUser {
+		if err == ErrNoUser {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -213,7 +221,7 @@ func (s *server) apiAuthMiddleware(h http.Handler) http.Handler {
 func (s *server) authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		info, err := s.currentUser(r)
-		if isSecureCookieExpired(err) || err == ErrNoUser {
+		if err == ErrNoUser {
 			if err := templates.ExecuteTemplate(w, "login.html", nil); err != nil {
 				log.Printf("execute template login.html: %s", err)
 			}
@@ -243,4 +251,25 @@ func (s *server) authMiddleware(h http.Handler) http.Handler {
 func drainAndClose(r io.ReadCloser) {
 	io.Copy(ioutil.Discard, r)
 	r.Close()
+}
+
+func reloadGpgAgent() error {
+	output, err := exec.Command("gpgconf", "--reload", "gpg-agent").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s", err, output)
+	}
+	return nil
+}
+
+func execGit(ctx context.Context, privateKeyFile, dir string, args []string) ([]byte, error) {
+	var allArgs []string
+	allArgs = append(allArgs, "--git-dir", filepath.Join(dir, ".git"))
+	allArgs = append(allArgs, "--work-tree", dir)
+	allArgs = append(allArgs, args...)
+
+	cmd := exec.CommandContext(ctx, "git", allArgs...)
+	cmd.Env = []string{
+		fmt.Sprintf(`GIT_SSH_COMMAND=ssh -i %s -o IdentitiesOnly=yes`, privateKeyFile),
+	}
+	return cmd.CombinedOutput()
 }

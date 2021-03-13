@@ -11,20 +11,24 @@ BaseURL = "http://localhost:52849"
 HTTPServiceAddress = ":52849"
 
 # Emails of Google accounts allow to signed in and access passwords.  (The GPG
-# passphrase used by pass is always required in addition to this requirement.)
-AllowedEmails = ["hikingfan@gmail.com"]
+# passphrase used by pass is always required to view each password in addition
+# to this requirement.)
+AllowedGoogleAccounts = ["hikingfan@gmail.com"]
 
 # Clone URL for pass Git repository.
-PasswordsGit = "git@example.com:foo/passwords.git"
+GitRepository = "git@example.com:foo/passwords.git"
+
+# Main branch of pass Git repository, e.g. "main", "master".
+GitBranch = "main"
 
 # Local path to pass's password store directory.  On your local machine, this
 # is typically ~/.password-store.  You may wish to use a different path in
-# your production environment.  The Git repository specified by PasswordsGit
+# your production environment.  The Git repository specified by GitRepository
 # will be cloned to the specified path if the path does not exist.
 PasswordStoreDir = "path/to/password-store"
 
 # Path to SSH private key file.  Used to clone the pass Git repository
-# specified by PasswordsGit and to fetch changes.
+# specified by GitRepository and to fetch changes.
 SSHPrivateKeyFile = "path/to/ssh/id_ed25519"
 
 # Used for Google Sign In.
