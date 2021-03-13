@@ -3,7 +3,11 @@
 A web user interface for [pass][1]. The web interface is served by a Go
 server.
 
-<img alt="screenshot of passweb user interface" src=".screenshots/front.png" width="400" />
+## SECURITY WARNING
+
+`passweb` serves content over HTTP, _not_ HTTPS. If you plan to serve
+`passweb`'s content on the Internet, you should set up a HTTPS reverse proxy
+that terminates TLS and forwards requests to `passweb`.
 
 ## Install
 
@@ -23,6 +27,8 @@ in the config file are required.
 ```
 passweb conf.toml
 ```
+
+<img alt="screenshot of passweb user interface" src=".screenshots/front.png" width="400" />
 
 The GPG keys used by `pass` must be located in the default GPG homedir:
 `~/.gnupg`.  The SSH keys for Git operations (such as cloning) should be in

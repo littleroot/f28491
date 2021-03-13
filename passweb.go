@@ -148,8 +148,17 @@ func run(ctx context.Context) error {
 	http.Handle("/static/", http.FileServer(http.FS(staticFS)))
 
 	log.Printf("listening on %s", c.HTTPServiceAddress)
+	log.Printf("%s", warning)
 	return http.ListenAndServe(c.HTTPServiceAddress, nil)
 }
+
+const warning = `
+SECURITY WARNING
+
+passweb serves content over HTTP, not HTTPS. If you plan to serve passweb's
+content on the Internet, you should set up a HTTPS reverse proxy that
+terminates TLS and forwards requests to passweb.
+`
 
 func ensurePasswordStoreDir(ctx context.Context, sshPrivateKeyFile, gitRepository, path, branch string) error {
 	info, err := os.Stat(path)
