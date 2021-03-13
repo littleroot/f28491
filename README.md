@@ -3,7 +3,7 @@
 A web user interface for [pass][1]. The web interface is served by a Go
 server.
 
-![screenshot of passweb user interface](.screenshots/front.png)
+<img alt="screenshot of passweb user interface" src=".screenshots/front.png" width="400" />
 
 ## Install
 
