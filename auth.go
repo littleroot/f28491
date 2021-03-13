@@ -163,7 +163,7 @@ func (s *server) authHandler() http.Handler {
 		tok, err := config.Exchange(ctx, code)
 		if err != nil {
 			log.Printf("exchange code: %s", err)
-			writeErrorHTML(w, "bad 'code' value", http.StatusInternalServerError)
+			writeErrorHTML(w, logOutHTML("bad 'code' value"), http.StatusInternalServerError)
 			return
 		}
 
