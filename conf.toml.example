@@ -10,7 +10,7 @@ BaseURL = "http://localhost:52849"
 # Address to serve tbe application on.
 HTTPServiceAddress = ":52849"
 
-# Emails of Google accounts allow to signed in and access passwords.  (The GPG
+# Emails of Google accounts allowed to sign in and access passwords.  (The GPG
 # passphrase used by pass is always required to view each password in addition
 # to this requirement.)
 AllowedGoogleAccounts = ["hikingfan@gmail.com"]
