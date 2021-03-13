@@ -5,7 +5,7 @@
 body {
 	font-family: "times new roman", serif;
 	margin: 0 auto;
-	padding: 10px;
+	padding: 0 12px;
 }
 
 a {
@@ -15,10 +15,6 @@ a {
 
 .underline {
 	text-decoration: underline;
-}
-
-main {
-	padding: 0 2px;
 }
 
 input {
@@ -39,11 +35,11 @@ ul {
 }
 
 code {
-	font-family: "Inconsolata", monospace;
+	font-family: monospace;
 }
 
 pre.name, pre.content {
-	font-family: "Inconsolata", monospace;
+	font-family: monospace;
 	overflow-x: auto;
 	background: #eee;
 	padding: 1em;
