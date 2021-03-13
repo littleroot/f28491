@@ -1,34 +1,38 @@
-# Running environment: "dev" | "production"
-# In dev, cookies use Secure=false
+# Running environment: "dev" | "production".
+# In dev, cookies use Secure=false.
+# In production, cookies use Secure=true.
 Env = "production"
 
-# Base URL of server
-# e.g. "http://localhost:52849", "https://sub.mydomain.com"
+# Base URL of server, e.g. "http://localhost:52849", "https://sub.mydomain.com".
+# Used in Google Auth redirect path.
 BaseURL = "http://localhost:52849"
 
-# HTTP service address to listen on
+# Address to serve tbe application on.
 HTTPServiceAddress = ":52849"
 
-# Local path to the pass password-store directory.
-# The repository specified by PasswordsGit will be cloned to the specified path
-# if it does not exist.
-PasswordStoreDir = "path/to/password-store"
-
-# Google account emails to allow to sign in and access passwords
+# Emails of Google accounts allow to signed in and access passwords.  (The GPG
+# passphrase used by pass is always required in addition to this requirement.)
 AllowedEmails = ["hikingfan@gmail.com"]
 
-# used for Google Sign In
-# see https://console.cloud.google.com/apis/credentials
-GoogleClientID = ""
-GoogleClientSecret = ""
+# Clone URL for pass Git repository.
+PasswordsGit = "git@example.com:foo/passwords.git"
 
-# see https://github.com/gorilla/securecookie#examples
-CookieHashKey = ""
-CookieBlockKey = ""
+# Local path to pass's password store directory.  On your local machine, this
+# is typically ~/.password-store.  You may wish to use a different path in
+# your production environment.  The Git repository specified by PasswordsGit
+# will be cloned to the specified path if the path does not exist.
+PasswordStoreDir = "path/to/password-store"
 
-# path to SSH private key file
-# used to clone the pass git repository
+# Path to SSH private key file.  Used to clone the pass Git repository
+# specified by PasswordsGit and to fetch changes.
 SSHPrivateKeyFile = "path/to/ssh/id_ed25519"
 
-# pass git repository remote
-PasswordsGit = "example@example.com:foo/bar.git"
+# Used for Google Sign In.
+# See https://console.cloud.google.com/apis/credentials to obtain these.
+GoogleClientID = "TODO"
+GoogleClientSecret = "TODO"
+
+# Hash key and block key for cookies used by the application.
+# See https://github.com/gorilla/securecookie#examples to obtain.
+CookieHashKey = "TODO"
+CookieBlockKey = "TODO"
