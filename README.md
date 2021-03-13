@@ -51,4 +51,4 @@ required in addition to this requirement to view each password.)
 
 MIT
 
-[1]: http://passworstore.org
+[1]: http://passwordstore.org
