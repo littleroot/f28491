@@ -3,6 +3,8 @@
 A web user interface for [pass][1]. The web interface is served by a Go
 server.
 
+![screenshot of passweb user interface](.screenshots/front.png)
+
 ## Install
 
 Requires Go version 1.16 or higher to build.
