@@ -1,4 +1,4 @@
-// Command passweb provies a web user interface for pass, the password
+// Command passweb provides a web user interface for pass, the password
 // manager.
 package main
 
